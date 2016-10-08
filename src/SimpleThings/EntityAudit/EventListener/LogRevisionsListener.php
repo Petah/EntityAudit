@@ -120,8 +120,14 @@ class LogRevisionsListener implements EventSubscriber
         $this->revisionId = null; // reset revision
 
         foreach ($this->uow->getScheduledEntityDeletions() AS $entity) {
+            //doctrine is fine deleting elements multiple times. We are not.
+            $hash = $this->getHash($entity);
+            if (in_array($hash, $processedEntities)) {
+                continue;
+            }
+            $processedEntities[] = $hash;
             $class = $this->em->getClassMetadata(get_class($entity));
-            if (!$this->metadataFactory->isAudited($class->name)) {
+            if (! $this->metadataFactory->isAudited($class->name)) {
                 continue;
             }
             $entityData = array_merge($this->getOriginalEntityData($entity), $this->uow->getEntityIdentifier($entity));
@@ -235,5 +241,21 @@ class LogRevisionsListener implements EventSubscriber
         }
 
         $this->conn->executeUpdate($this->getInsertRevisionSQL($class), $params, $types);
+    }
+
+    /**
+     * @param $entity
+     *
+     * @return string
+     */
+    private function getHash($entity)
+    {
+        return implode(
+            ' ',
+            array_merge(
+                array(\Doctrine\Common\Util\ClassUtils::getRealClass(get_class($entity))),
+                $this->uow->getEntityIdentifier($entity)
+            )
+        );
     }
 }
