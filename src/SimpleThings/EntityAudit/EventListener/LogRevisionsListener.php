@@ -119,6 +119,8 @@ class LogRevisionsListener implements EventSubscriber
         $this->platform = $this->conn->getDatabasePlatform();
         $this->revisionId = null; // reset revision
 
+        $processedEntities = array();
+
         foreach ($this->uow->getScheduledEntityDeletions() AS $entity) {
             //doctrine is fine deleting elements multiple times. We are not.
             $hash = $this->getHash($entity);
